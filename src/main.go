@@ -10,7 +10,7 @@ var check *checkBreak
 
 func main() {
 	args := os.Args[1:]
-	if 2 > len(args) {
+	if 3 > len(args) {
 		fmt.Println("Not enough arguments")
 		os.Exit(1)
 		return
