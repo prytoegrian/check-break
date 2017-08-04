@@ -220,9 +220,9 @@ func (f *File) setDiff(cb checkBreak) error {
 	var diffDeleted []string
 	var diffAdded []string
 	for _, line := range strings.Split(diff, "\n") {
-		if strings.HasPrefix(line, "- ") {
+		if strings.HasPrefix(line, "-") {
 			diffDeleted = append(diffDeleted, strings.TrimSpace(line[1:]))
-		} else if strings.HasPrefix(line, "+ ") {
+		} else if strings.HasPrefix(line, "+") {
 			diffAdded = append(diffAdded, strings.TrimSpace(line[1:]))
 		}
 	}
@@ -248,7 +248,7 @@ func patternByLanguage(extension string) (*regexp.Regexp, error) {
 	var pattern *regexp.Regexp
 	switch extension {
 	case "go":
-		pattern = regexp.MustCompile(`^(\s)*func [A-Z]{1}[A-Za-z]*\(`)
+		pattern = regexp.MustCompile(`^(\s)*func( \(.+)\)? [A-Z]{1}[A-Za-z]*\(`)
 	case "php":
 		pattern = regexp.MustCompile(`^(\s)*public( static)? function [_A-Za-z]+\(`)
 	}
