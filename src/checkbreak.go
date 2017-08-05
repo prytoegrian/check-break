@@ -33,7 +33,8 @@ func (*checkBreak) init(path string, baseBranch string, workingBranch string) ch
 
 // BreakReport is a report to display
 type BreakReport struct {
-	files []FileReport
+	supported []FileReport
+	ignored   []File
 }
 
 // report displays a BreakReport
@@ -43,10 +44,10 @@ func (cb *checkBreak) report() (*BreakReport, error) {
 		return nil, err
 	}
 
-	files := files(gitFiles, *cb)
+	supported, ignored := files(gitFiles, *cb)
 
 	filesReports := make([]FileReport, 0)
-	for _, file := range files {
+	for _, file := range supported {
 		methods, _ := file.breaks()
 
 		if 0 != len(*methods) {
@@ -59,7 +60,8 @@ func (cb *checkBreak) report() (*BreakReport, error) {
 	}
 
 	return &BreakReport{
-		files: filesReports,
+		supported: filesReports,
+		ignored:   ignored,
 	}, nil
 }
 
@@ -70,18 +72,20 @@ type FileReport struct {
 }
 
 // report displays a FileReport and its potentials compatibility breaks
-func (fr *FileReport) report() {
-	fmt.Println(">>", fr.filename)
+func (fr *FileReport) report() string {
+	report := ">> " + fr.filename
 	for _, method := range fr.methods {
+		report += "\n"
 		beforeFormatted := color.RedString("-" + method.before)
 		afterFormatted := color.GreenString("+" + method.after)
 		if "" == method.after {
-			fmt.Println(beforeFormatted)
+			report += beforeFormatted
 		} else {
-			fmt.Println(beforeFormatted, "->", afterFormatted)
+			report += beforeFormatted + " -> " + afterFormatted
 		}
 	}
-	fmt.Println("")
+
+	return report + "\n"
 }
 
 // File is a file representation
@@ -98,6 +102,10 @@ type Method struct {
 	after        string
 	commonFactor string
 	distance     int
+}
+
+func (f *File) report() string {
+	return fmt.Sprint(">> ", color.CyanString(f.name))
 }
 
 // breaks returns all potentials CB on a file
@@ -139,8 +147,9 @@ func (f *File) breaks() (*[]Method, error) {
 }
 
 // files initializes files struct
-func files(filenamesDiff string, cb checkBreak) []File {
-	files := make([]File, 0)
+func files(filenamesDiff string, cb checkBreak) ([]File, []File) {
+	supported := make([]File, 0)
+	ignored := make([]File, 0)
 
 	for _, fileLine := range strings.Split(strings.TrimSpace(filenamesDiff), "\n") {
 		file := &File{}
@@ -149,12 +158,17 @@ func files(filenamesDiff string, cb checkBreak) []File {
 		file.setType(fileLine)
 		file.setFilteredDiff(cb)
 
-		if file.hasAutorizedType() && file.canHaveBreak() {
-			files = append(files, *file)
+		if file.canHaveBreak() {
+			if file.isTypeSupported() {
+				supported = append(supported, *file)
+			} else {
+				ignored = append(ignored, *file)
+			}
+
 		}
 	}
 
-	return files
+	return supported, ignored
 }
 
 func (f *File) setStatus(fileLine string) {
@@ -218,8 +232,7 @@ func filteredByPattern(r *regexp.Regexp, data []string) []string {
 	return filtered
 }
 
-// hasAutorizedType checks if file type is describe
-func (f *File) hasAutorizedType() bool {
+func (f *File) isTypeSupported() bool {
 	_, err := f.breakPattern()
 	if nil != err {
 		return false
@@ -227,7 +240,7 @@ func (f *File) hasAutorizedType() bool {
 	return true
 }
 
-// pattern returns the regex of a potential compatibility break associated
+// breakPattern returns the regex of a potential compatibility break associated
 // with type of the file
 func (f *File) breakPattern() (*regexp.Regexp, error) {
 	var pattern *regexp.Regexp
