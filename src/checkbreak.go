@@ -226,7 +226,6 @@ func (f *File) setDiff(cb checkBreak) error {
 			diffAdded = append(diffAdded, strings.TrimSpace(line[1:]))
 		}
 	}
-
 	f.diff = Diff{
 		deletions: diffDeleted,
 		addings:   diffAdded,
@@ -251,6 +250,8 @@ func patternByLanguage(extension string) (*regexp.Regexp, error) {
 		pattern = regexp.MustCompile(`^(\s)*func( \(.+)\)? [A-Z]{1}[A-Za-z]*\(`)
 	case "php":
 		pattern = regexp.MustCompile(`^(\s)*public( static)? function [_A-Za-z]+\(`)
+	case "java":
+		pattern = regexp.MustCompile(`^(\s)*public( static)?( .+)? [A-Za-z]+\(`)
 	}
 
 	if nil == pattern {
