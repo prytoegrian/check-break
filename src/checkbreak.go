@@ -152,17 +152,19 @@ func files(filenamesDiff string, cb checkBreak) ([]File, []File) {
 	ignored := make([]File, 0)
 
 	for _, fileLine := range strings.Split(strings.TrimSpace(filenamesDiff), "\n") {
-		file := &File{}
-		file.setStatus(fileLine)
-		file.setName(fileLine)
-		file.setType(fileLine)
-		file.setFilteredDiff(cb)
+		name := strings.TrimSpace(fileLine[1:])
+		file := File{
+			name:     name,
+			status:   strings.TrimSpace(fileLine[:1]),
+			typeFile: typeFile(name),
+		}
 
+		file.setFilteredDiff(cb.delta)
 		if file.canHaveBreak() {
 			if file.isTypeSupported() {
-				supported = append(supported, *file)
+				supported = append(supported, file)
 			} else {
-				ignored = append(ignored, *file)
+				ignored = append(ignored, file)
 			}
 
 		}
@@ -171,16 +173,15 @@ func files(filenamesDiff string, cb checkBreak) ([]File, []File) {
 	return supported, ignored
 }
 
-func (f *File) setStatus(fileLine string) {
-	f.status = strings.TrimSpace(fileLine[:1])
-}
+// typeFile return a file's extension
+func typeFile(filepath string) string {
+	var typeFile string
+	filename := path.Base(filepath)
+	if strings.Contains(filename, ".") && !strings.HasPrefix(filename, ".") {
+		typeFile = strings.TrimSpace(path.Ext(filename)[1:])
+	}
 
-func (f *File) setName(fileLine string) {
-	f.name = strings.TrimSpace(fileLine[1:])
-}
-
-func (f *File) setType(fileLine string) {
-	f.typeFile = strings.TrimSpace(path.Ext(fileLine)[1:])
+	return typeFile
 }
 
 func (f *File) canHaveBreak() bool {
@@ -193,8 +194,8 @@ type Diff struct {
 	addings   []string
 }
 
-func (f *File) setFilteredDiff(cb checkBreak) error {
-	diff, err := qexec.Run("git", "diff", "-U0", cb.delta, f.name)
+func (f *File) setFilteredDiff(deltaDiff string) error {
+	diff, err := qexec.Run("git", "diff", "-U0", deltaDiff, f.name)
 	if nil != err {
 		return err
 	}
