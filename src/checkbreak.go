@@ -47,10 +47,6 @@ func (cb *checkBreak) report() (*BreakReport, error) {
 
 	filesReports := make([]FileReport, 0)
 	for _, file := range files {
-		if !file.isUsefulFile() {
-			continue
-		}
-
 		methods, _ := file.breaks()
 
 		if 0 != len(*methods) {
@@ -67,7 +63,7 @@ func (cb *checkBreak) report() (*BreakReport, error) {
 	}, nil
 }
 
-// FileReport is a pool of potentials compatibilities breaks
+// FileReport is a pool of potentials compatibility breaks
 type FileReport struct {
 	methods  []Method
 	filename string
@@ -96,11 +92,6 @@ type File struct {
 	typeFile string
 }
 
-// isUsefulFile checks if the file will be elligible to CB
-func (f *File) isUsefulFile() bool {
-	return "A" != f.status
-}
-
 // Method is a potential break on a public method
 type Method struct {
 	before       string
@@ -111,8 +102,7 @@ type Method struct {
 
 // breaks returns all potentials CB on a file
 func (f *File) breaks() (*[]Method, error) {
-	f.filterDiff()
-	pattern, err := patternByLanguage(f.typeFile)
+	pattern, err := f.breakPattern()
 	if nil != err {
 		return nil, err
 	}
@@ -148,33 +138,7 @@ func (f *File) breaks() (*[]Method, error) {
 	return &methods, nil
 }
 
-// filterDiff filters out git diff lines which aren't relevant for BC
-func (f *File) filterDiff() error {
-	pattern, err := patternByLanguage(f.typeFile)
-	if nil != err {
-		return err
-	}
-	f.diff = Diff{
-		deletions: filteredByPattern(pattern, f.diff.deletions),
-		addings:   filteredByPattern(pattern, f.diff.addings),
-	}
-
-	return nil
-}
-
-// filteredByPattern keeps only data lines which match a pattern
-func filteredByPattern(r *regexp.Regexp, data []string) []string {
-	filtered := make([]string, 0)
-	for _, element := range data {
-		if r.MatchString(element) {
-			filtered = append(filtered, element)
-		}
-	}
-
-	return filtered
-}
-
-// files initiliazes files struct
+// files initializes files struct
 func files(filenamesDiff string, cb checkBreak) []File {
 	files := make([]File, 0)
 
@@ -183,9 +147,9 @@ func files(filenamesDiff string, cb checkBreak) []File {
 		file.setStatus(fileLine)
 		file.setName(fileLine)
 		file.setType(fileLine)
-		file.setDiff(cb)
+		file.setFilteredDiff(cb)
 
-		if file.hasAutorizedType() {
+		if file.hasAutorizedType() && file.canHaveBreak() {
 			files = append(files, *file)
 		}
 	}
@@ -205,16 +169,25 @@ func (f *File) setType(fileLine string) {
 	f.typeFile = strings.TrimSpace(path.Ext(fileLine)[1:])
 }
 
+func (f *File) canHaveBreak() bool {
+	return "A" != f.status
+}
+
 // Diff represents the diff of a file, segregated with deletion and adding
 type Diff struct {
 	deletions []string
 	addings   []string
 }
 
-func (f *File) setDiff(cb checkBreak) error {
+func (f *File) setFilteredDiff(cb checkBreak) error {
 	diff, err := qexec.Run("git", "diff", "-U0", cb.delta, f.name)
 	if nil != err {
 		return err
+	}
+
+	pattern, errPattern := f.breakPattern()
+	if nil != errPattern {
+		return errPattern
 	}
 
 	var diffDeleted []string
@@ -227,25 +200,38 @@ func (f *File) setDiff(cb checkBreak) error {
 		}
 	}
 	f.diff = Diff{
-		deletions: diffDeleted,
-		addings:   diffAdded,
+		deletions: filteredByPattern(pattern, diffDeleted),
+		addings:   filteredByPattern(pattern, diffAdded),
 	}
 	return nil
 }
 
+// filteredByPattern keeps only data lines that match a pattern
+func filteredByPattern(r *regexp.Regexp, data []string) []string {
+	filtered := make([]string, 0)
+	for _, element := range data {
+		if r.MatchString(element) {
+			filtered = append(filtered, element)
+		}
+	}
+
+	return filtered
+}
+
 // hasAutorizedType checks if file type is describe
 func (f *File) hasAutorizedType() bool {
-	_, err := patternByLanguage(f.typeFile)
+	_, err := f.breakPattern()
 	if nil != err {
 		return false
 	}
 	return true
 }
 
-// patternByLanguage returns the regex of a potential compatibility break
-func patternByLanguage(extension string) (*regexp.Regexp, error) {
+// pattern returns the regex of a potential compatibility break associated
+// with type of the file
+func (f *File) breakPattern() (*regexp.Regexp, error) {
 	var pattern *regexp.Regexp
-	switch extension {
+	switch f.typeFile {
 	case "go":
 		pattern = regexp.MustCompile(`^(\s)*func( \(.+)\)? [A-Z]{1}[A-Za-z]*\(`)
 	case "php":
