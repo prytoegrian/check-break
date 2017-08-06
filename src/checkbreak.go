@@ -10,25 +10,34 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/ferhatelmas/levenshtein"
+	"github.com/tbruyelle/git"
 	"github.com/tbruyelle/qexec"
 )
 
-type checkBreak struct {
-	path          string
-	delta         string
-	baseBranch    string
-	workingBranch string
+type CheckBreak struct {
+	path       string
+	startPoint string
+	endPoint   string
 }
 
-func (*checkBreak) init(path string, baseBranch string, workingBranch string) checkBreak {
-	os.Chdir(path)
-
-	return checkBreak{
-		path:          path,
-		workingBranch: workingBranch,
-		baseBranch:    baseBranch,
-		delta:         baseBranch + "..." + workingBranch,
+func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*CheckBreak, error) {
+	if errPath := os.Chdir(path); nil != errPath {
+		return nil, errors.New("Path inexistant")
 	}
+
+	if exists, _ := git.RefExists(startPoint); !exists {
+		return nil, errors.New("L'objet « " + startPoint + " » n'existe pas")
+	}
+
+	if exists, _ := git.RefExists(endPoint); !exists {
+		return nil, errors.New("L'objet « " + endPoint + " » n'existe pas")
+	}
+
+	return &CheckBreak{
+		path:       path,
+		startPoint: startPoint,
+		endPoint:   endPoint,
+	}, nil
 }
 
 // BreakReport is a report to display
@@ -38,8 +47,8 @@ type BreakReport struct {
 }
 
 // report displays a BreakReport
-func (cb *checkBreak) report() (*BreakReport, error) {
-	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.delta)
+func (cb *CheckBreak) report() (*BreakReport, error) {
+	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.startPoint+"..."+cb.endPoint)
 	if nil != err {
 		return nil, err
 	}
@@ -147,34 +156,47 @@ func (f *File) breaks() (*[]Method, error) {
 }
 
 // files initializes files struct
-func files(filenamesDiff string, cb checkBreak) ([]File, []File) {
+func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
 	supported := make([]File, 0)
 	ignored := make([]File, 0)
 
 	for _, fileLine := range strings.Split(strings.TrimSpace(filenamesDiff), "\n") {
-		name := strings.TrimSpace(fileLine[1:])
-		file := File{
-			name:     name,
-			status:   strings.TrimSpace(fileLine[:1]),
-			typeFile: typeFile(name),
+		file := File{}
+		status, name, filetype := extractDataFile(fileLine)
+		file.name = name
+		file.status = status
+		file.typeFile = filetype
+		diff, err := file.getDiff(cb.startPoint, cb.endPoint)
+		if nil == err {
+			file.diff = *diff
 		}
 
-		file.setFilteredDiff(cb.delta)
 		if file.canHaveBreak() {
 			if file.isTypeSupported() {
 				supported = append(supported, file)
 			} else {
 				ignored = append(ignored, file)
 			}
-
 		}
 	}
 
 	return supported, ignored
 }
 
+// extractDataFile gives file's name, status and type
+func extractDataFile(fileLine string) (string, string, string) {
+	fields := strings.Fields(fileLine)
+	status := fields[0]
+	name := fields[1]
+	if strings.HasPrefix(status, "R") {
+		status = "D"
+	}
+
+	return status, name, typefile(name)
+}
+
 // typeFile return a file's extension
-func typeFile(filepath string) string {
+func typefile(filepath string) string {
 	var typeFile string
 	filename := path.Base(filepath)
 	if strings.Contains(filename, ".") && !strings.HasPrefix(filename, ".") {
@@ -188,21 +210,28 @@ func (f *File) canHaveBreak() bool {
 	return "A" != f.status
 }
 
+func (f *File) isDeleted() bool {
+	return "D" == f.status
+}
+
 // Diff represents the diff of a file, segregated with deletion and adding
 type Diff struct {
 	deletions []string
 	addings   []string
 }
 
-func (f *File) setFilteredDiff(deltaDiff string) error {
-	diff, err := qexec.Run("git", "diff", "-U0", deltaDiff, f.name)
+func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
+	if f.isDeleted() {
+		return f.getDiffDeleted(startObject)
+	}
+	diff, err := qexec.Run("git", "diff", "-U0", startObject+"..."+endObject, f.name)
 	if nil != err {
-		return err
+		return nil, err
 	}
 
 	pattern, errPattern := f.breakPattern()
 	if nil != errPattern {
-		return errPattern
+		return nil, errPattern
 	}
 
 	var diffDeleted []string
@@ -214,11 +243,31 @@ func (f *File) setFilteredDiff(deltaDiff string) error {
 			diffAdded = append(diffAdded, strings.TrimSpace(line[1:]))
 		}
 	}
-	f.diff = Diff{
+
+	return &Diff{
 		deletions: filteredByPattern(pattern, diffDeleted),
 		addings:   filteredByPattern(pattern, diffAdded),
+	}, nil
+}
+
+func (f *File) getDiffDeleted(startObject string) (*Diff, error) {
+	fileDeleted, err := qexec.Run("git", "show", startObject+":"+f.name)
+
+	if nil != err {
+		return nil, err
 	}
-	return nil
+	pattern, errPattern := f.breakPattern()
+	if nil != errPattern {
+		return nil, errPattern
+	}
+	var diffDeleted []string
+	for _, line := range strings.Split(fileDeleted, "\n") {
+		diffDeleted = append(diffDeleted, strings.TrimSpace(line))
+	}
+
+	return &Diff{
+		deletions: filteredByPattern(pattern, diffDeleted),
+	}, nil
 }
 
 // filteredByPattern keeps only data lines that match a pattern

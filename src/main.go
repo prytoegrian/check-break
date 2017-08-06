@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var check *checkBreak
+var check *CheckBreak
 
 func main() {
 	args := os.Args[1:]
@@ -16,15 +16,19 @@ func main() {
 		return
 	}
 	path := args[0]
-	baseBranch := args[1]
-	workingBranch := args[2]
-	cb := check.init(path, baseBranch, workingBranch)
-	report, err := cb.report()
-	if nil != err {
-		fmt.Println(err)
+	startPoint := args[1]
+	endPoint := args[2]
+	cb, errInit := check.init(path, startPoint, endPoint)
+	if nil != errInit {
+		fmt.Println("Initialisation impossible :", errInit)
 		os.Exit(1)
 	}
-	title := "\nCheck-break report : " + cb.path + " " + cb.delta
+	report, errReport := cb.report()
+	if nil != errReport {
+		fmt.Println("Erreur durant la construction du rapport :", errReport)
+		os.Exit(1)
+	}
+	title := "\nCheck-break report : " + cb.path + " " + cb.startPoint + " " + cb.endPoint
 	fmt.Println(strings.Repeat("#", len(title)), strings.ToTitle(title))
 	fmt.Println()
 	if 0 == len(report.supported) {
