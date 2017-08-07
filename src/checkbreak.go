@@ -298,7 +298,7 @@ func (f *File) breakPattern() (*regexp.Regexp, error) {
 	case "go":
 		pattern = regexp.MustCompile(`^(\s)*func( \(.+)\)? [A-Z]{1}[A-Za-z]*\(`)
 	case "php":
-		pattern = regexp.MustCompile(`^(\s)*public( static)? function [_A-Za-z]+\(`)
+		pattern = regexp.MustCompile(`^(\s)*public( static)? function [_A-Za-z]+\(|^(\s)*function [_A-Za-z]+\(`)
 	case "java":
 		pattern = regexp.MustCompile(`^(\s)*public( static)?( .+)? [A-Za-z]+\(`)
 	}

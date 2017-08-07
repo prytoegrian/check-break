@@ -33,17 +33,17 @@ func main() {
 	fmt.Println()
 	if 0 == len(report.supported) {
 		fmt.Println("> Aucun cassage de compatibilité")
-		return
-	}
-	potential := "> Cassages de compatibilité potentiels"
-	fmt.Println(potential, "\n", strings.Repeat("-", len(potential)))
+	} else {
+		potential := "> Cassages de compatibilité potentiels"
+		fmt.Println(potential, "\n", strings.Repeat("-", len(potential)))
 
-	for _, fileReport := range report.supported {
-		fmt.Println(fileReport.report())
+		for _, fileReport := range report.supported {
+			fmt.Println(fileReport.report())
+		}
 	}
 
 	if 0 != len(report.ignored) {
-		ignored := "> Fichiers ignorés"
+		ignored := "\n> Fichiers ignorés"
 		fmt.Println(ignored, "\n", strings.Repeat("-", len(ignored)))
 		for _, fileIgnored := range report.ignored {
 			fmt.Println(fileIgnored.report())

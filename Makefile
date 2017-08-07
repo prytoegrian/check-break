@@ -1,4 +1,4 @@
-PACKAGE = github.com/r11t/check-break/src
+PACKAGE = github.com/r11t/check-break
 
 # Functions
 
