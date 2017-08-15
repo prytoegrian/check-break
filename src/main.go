@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -11,22 +12,18 @@ var check *CheckBreak
 func main() {
 	args := os.Args[1:]
 	if 3 > len(args) {
-		fmt.Println("Not enough arguments")
-		os.Exit(1)
-		return
+		log.Fatal("Not enough arguments")
 	}
 	path := args[0]
 	startPoint := args[1]
 	endPoint := args[2]
 	cb, errInit := check.init(path, startPoint, endPoint)
-	if nil != errInit {
-		fmt.Println("Initialisation impossible :", errInit)
-		os.Exit(1)
+	if errInit != nil {
+		log.Fatal("Init impossible : ", errInit)
 	}
 	report, errReport := cb.report()
-	if nil != errReport {
-		fmt.Println("Erreur durant la construction du rapport :", errReport)
-		os.Exit(1)
+	if errReport != nil {
+		log.Fatal("Erreur durant la construction du rapport : ", errReport)
 	}
 	title := "\nCheck-break report : " + cb.path + " " + cb.startPoint + " " + cb.endPoint
 	fmt.Println(strings.Repeat("#", len(title)), strings.ToTitle(title))

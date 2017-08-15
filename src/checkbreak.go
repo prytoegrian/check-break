@@ -21,16 +21,16 @@ type CheckBreak struct {
 }
 
 func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*CheckBreak, error) {
-	if errPath := os.Chdir(path); nil != errPath {
+	if errPath := os.Chdir(path); errPath != nil {
 		return nil, errors.New("Path inexistant")
 	}
 
 	if exists, _ := git.RefExists(startPoint); !exists {
-		return nil, errors.New("L'objet « " + startPoint + " » n'existe pas")
+		return nil, fmt.Errorf("L'objet %s n'existe pas", startPoint)
 	}
 
 	if exists, _ := git.RefExists(endPoint); !exists {
-		return nil, errors.New("L'objet « " + endPoint + " » n'existe pas")
+		return nil, fmt.Errorf("L'objet %s n'existe pas", endPoint)
 	}
 
 	return &CheckBreak{
@@ -49,7 +49,7 @@ type BreakReport struct {
 // report displays a BreakReport
 func (cb *CheckBreak) report() (*BreakReport, error) {
 	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.startPoint+"..."+cb.endPoint)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 
@@ -120,7 +120,7 @@ func (f *File) report() string {
 // breaks returns all potentials CB on a file
 func (f *File) breaks() (*[]Method, error) {
 	pattern, err := f.breakPattern()
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 
@@ -167,7 +167,7 @@ func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
 		file.status = status
 		file.typeFile = filetype
 		diff, err := file.getDiff(cb.startPoint, cb.endPoint)
-		if nil == err {
+		if err == nil {
 			file.diff = *diff
 		}
 
@@ -225,12 +225,12 @@ func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
 		return f.getDiffDeleted(startObject)
 	}
 	diff, err := qexec.Run("git", "diff", "-U0", startObject+"..."+endObject, f.name)
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
 
 	pattern, errPattern := f.breakPattern()
-	if nil != errPattern {
+	if errPattern != nil {
 		return nil, errPattern
 	}
 
@@ -252,12 +252,12 @@ func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
 
 func (f *File) getDiffDeleted(startObject string) (*Diff, error) {
 	fileDeleted, err := qexec.Run("git", "show", startObject+":"+f.name)
-
-	if nil != err {
+	if err != nil {
 		return nil, err
 	}
+
 	pattern, errPattern := f.breakPattern()
-	if nil != errPattern {
+	if errPattern != nil {
 		return nil, errPattern
 	}
 	var diffDeleted []string
@@ -284,10 +284,8 @@ func filteredByPattern(r *regexp.Regexp, data []string) []string {
 
 func (f *File) isTypeSupported() bool {
 	_, err := f.breakPattern()
-	if nil != err {
-		return false
-	}
-	return true
+
+	return err == nil
 }
 
 // breakPattern returns the regex of a potential compatibility break associated
@@ -303,7 +301,7 @@ func (f *File) breakPattern() (*regexp.Regexp, error) {
 		pattern = regexp.MustCompile(`^(\s)*public( static)?( .+)? [A-Za-z]+\(`)
 	}
 
-	if nil == pattern {
+	if pattern == nil {
 		return pattern, errors.New("Langage inconnu")
 	}
 
