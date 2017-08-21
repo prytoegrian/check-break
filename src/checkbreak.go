@@ -301,6 +301,8 @@ func (f *File) breakPattern() (*regexp.Regexp, error) {
 		pattern = regexp.MustCompile(`^(\s)*public( static)?( .+)? [A-Za-z]+\(`)
 	case "js":
 		pattern = regexp.MustCompile(`^(\s)*function [A-Za-z]+\(|^(\s)*(var )?[A-Za-z._]+(\s)*=(\s)*function \(|(\s)*[A-Za-z._]+(\s)*:(\s)*function \(`)
+	case "sh":
+		pattern = regexp.MustCompile(`^(\s)*function [A-Za-z_]+\(`)
 	}
 
 	if pattern == nil {
