@@ -1,4 +1,4 @@
-PACKAGE = github.com/r11t/check-break
+PACKAGE = github.com/prytoegrian/check-break
 
 # Functions
 
