@@ -39,6 +39,6 @@ Obviously, I started with langages I use in a daily-basis :
 - PHP
 - sh
 
-Feel free to participate to add yours, correct bugs, improve software design, etc. `Check-break` is under [GPL3](LICENCE).
+Feel free to participate to add yours, correct bugs, improve software design, etc. `Check-break` is under [GPL3](LICENSE).
 
 Please remember that this tool may be incomplete. It doesn't replace the human judgment.
