@@ -6,7 +6,7 @@ Check-break helps you to discover compatibility breaks in your code, and improve
 Basically, following the semver definition :  
 > A change is incompatible if it removes a possibility for the consumer in the public API.
 
-All starts with a clear definition of **public API** in your context. Once done, a compatibility breas occurs on all **public API** functions each time :
+All starts with a clear definition of **public API** in your context. Once done, a compatibility break occurs on all **public API** functions each time :
 - an argument is removed
 - an argument is added (*without a default value*)
 - a return type is removed
