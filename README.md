@@ -1,4 +1,6 @@
 # Check-break
+[![BCH compliance](https://bettercodehub.com/edge/badge/Prytoegrian/check-break?branch=master)](https://bettercodehub.com/)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/256c3748a9004017aa28751cb06c964d)](https://www.codacy.com/app/Libertempo/check-break?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Prytoegrian/check-break&amp;utm_campaign=Badge_Grade)
 
 Check-break helps you to discover compatibility breaks in your code, and improve decisions-making to determine if a new major version is required. In few words, if you follow *semver* (or try to stick to it), you must use `check-break` ;-)
 
