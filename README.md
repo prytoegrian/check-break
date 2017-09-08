@@ -28,7 +28,7 @@ Since `check-break` can't guess your public API (yet), it shows you all changes 
 ## Usage
 This tool is based upon `git`, and particularly on diff between two points. Thus, the syntax is as follows :
 ```sh
-executable [path_to_git_repository] [starting_point] [ending_point]
+$ check-break path_to_git_repository starting_point ending_point
 ```
 
 **Note:** All unsupported files are also reported as such, in order not to give a feeling of false negative.
