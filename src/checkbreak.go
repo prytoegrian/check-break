@@ -22,15 +22,15 @@ type CheckBreak struct {
 
 func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*CheckBreak, error) {
 	if errPath := os.Chdir(path); errPath != nil {
-		return nil, errors.New("Path inexistant")
+		return nil, errors.New("Path doesn't exist")
 	}
 
 	if exists, _ := git.RefExists(startPoint); !exists {
-		return nil, fmt.Errorf("L'objet %s n'existe pas", startPoint)
+		return nil, fmt.Errorf("The object %s doesn't exist", startPoint)
 	}
 
 	if exists, _ := git.RefExists(endPoint); !exists {
-		return nil, fmt.Errorf("L'objet %s n'existe pas", endPoint)
+		return nil, fmt.Errorf("The object %s doesn't exist", endPoint)
 	}
 
 	return &CheckBreak{
@@ -306,7 +306,7 @@ func (f *File) breakPattern() (*regexp.Regexp, error) {
 	}
 
 	if pattern == nil {
-		return pattern, errors.New("Langage inconnu")
+		return pattern, errors.New("Unknown langage")
 	}
 
 	return pattern, nil

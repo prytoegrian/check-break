@@ -19,19 +19,19 @@ func main() {
 	endPoint := args[2]
 	cb, errInit := check.init(path, startPoint, endPoint)
 	if errInit != nil {
-		log.Fatal("Init impossible : ", errInit)
+		log.Fatal("Init failed : ", errInit)
 	}
 	report, errReport := cb.report()
 	if errReport != nil {
-		log.Fatal("Erreur durant la construction du rapport : ", errReport)
+		log.Fatal("Error during report construction : ", errReport)
 	}
 	title := "\nCheck-break report : " + cb.path + " " + cb.startPoint + " " + cb.endPoint
 	fmt.Println(strings.Repeat("#", len(title)), strings.ToTitle(title))
 	fmt.Println()
 	if 0 == len(report.supported) {
-		fmt.Println("> Aucun cassage de compatibilité")
+		fmt.Println("> No compatibility break")
 	} else {
-		potential := "> Cassages de compatibilité potentiels"
+		potential := "> Potentials compatibility breaks"
 		fmt.Println(potential, "\n", strings.Repeat("-", len(potential)))
 
 		for _, fileReport := range report.supported {
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	if 0 != len(report.ignored) {
-		ignored := "\n> Fichiers ignorés"
+		ignored := "\n> Unsupported files"
 		fmt.Println(ignored, "\n", strings.Repeat("-", len(ignored)))
 		for _, fileIgnored := range report.ignored {
 			fmt.Println(fileIgnored.report())
