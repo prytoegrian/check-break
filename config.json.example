@@ -1,0 +1,10 @@
+{
+    "excluded": [
+        {
+            "path" : "relative/path/to/dir"
+        },
+        {
+            "path" : "relative/path/to/dir/and/file.txt"
+        }
+    ]
+}

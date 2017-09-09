@@ -14,10 +14,10 @@ func main() {
 	if 3 > len(args) {
 		log.Fatal("Not enough arguments")
 	}
-	path := args[0]
+	workingPath := args[0]
 	startPoint := args[1]
 	endPoint := args[2]
-	cb, errInit := check.init(path, startPoint, endPoint)
+	cb, errInit := check.init(workingPath, startPoint, endPoint)
 	if errInit != nil {
 		log.Fatal("Init failed : ", errInit)
 	}
@@ -25,7 +25,7 @@ func main() {
 	if errReport != nil {
 		log.Fatal("Error during report construction : ", errReport)
 	}
-	title := "\nCheck-break report : " + cb.path + " " + cb.startPoint + " " + cb.endPoint
+	title := "\nCheck-break report : " + cb.workingPath + " " + cb.startPoint + " " + cb.endPoint
 	fmt.Println(strings.Repeat("#", len(title)), title)
 	fmt.Println("For details, see https://github.com/Prytoegrian/check-break#what-is-a-compatibility-break-")
 	fmt.Println()

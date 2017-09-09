@@ -13,14 +13,15 @@ import (
 	"github.com/tbruyelle/qexec"
 )
 
+// CheckBreak represents base structure required for evaluating code changes
 type CheckBreak struct {
-	path       string
-	startPoint string
-	endPoint   string
+	workingPath string
+	startPoint  string
+	endPoint    string
 }
 
-func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*CheckBreak, error) {
-	if errPath := os.Chdir(path); errPath != nil {
+func (cb *CheckBreak) init(workingPath string, startPoint string, endPoint string) (*CheckBreak, error) {
+	if errPath := os.Chdir(workingPath); errPath != nil {
 		return nil, errors.New("Path doesn't exist")
 	}
 
@@ -33,9 +34,9 @@ func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*Ch
 	}
 
 	return &CheckBreak{
-		path:       path,
-		startPoint: startPoint,
-		endPoint:   endPoint,
+		workingPath: workingPath,
+		startPoint:  startPoint,
+		endPoint:    endPoint,
 	}, nil
 }
 
