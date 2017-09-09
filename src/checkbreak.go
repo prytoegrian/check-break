@@ -143,12 +143,13 @@ func (f *File) breaks() (*[]Method, error) {
 			}
 		}
 
-		if !moveOnly {
+		explanation := explainedChanges(deleted, closestAdding)
+		if !moveOnly && explanation != "" {
 			method := Method{
 				before:       deleted,
 				after:        closestAdding,
 				commonFactor: commonFactor,
-				explanation:  explainedChanges(deleted, closestAdding),
+				explanation:  explanation,
 			}
 			methods = append(methods, method)
 		}
@@ -219,7 +220,7 @@ func explainedChanges(before string, after string) string {
 				explanation = "Adding a parameter without default value"
 				break
 			}
-			// Precise cases :
+			// TODO : Precise cases :
 			//	- add type
 			//	- change type
 			// 	- drop type (not a CB)
@@ -234,7 +235,7 @@ func differences(before []string, after []string) ([]string, []string) {
 	lengthBefore := len(before)
 	lengthAfter := len(after)
 
-	if len(before) < len(after) {
+	if lengthBefore < lengthAfter {
 		for i := lengthBefore; i < lengthAfter; i++ {
 			before = append(before, "")
 		}
