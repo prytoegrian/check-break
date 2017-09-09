@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/ferhatelmas/levenshtein"
 	"github.com/tbruyelle/git"
 	"github.com/tbruyelle/qexec"
 )
@@ -84,14 +83,16 @@ type FileReport struct {
 func (fr *FileReport) report() string {
 	report := ">> " + fr.filename
 	for _, method := range fr.methods {
+		var change string
 		report += "\n"
-		beforeFormatted := color.RedString("-" + method.before)
-		afterFormatted := color.GreenString("+" + method.after)
+		beforeFormatted := color.RedString(method.before)
+		afterFormatted := color.GreenString(method.after)
 		if "" == method.after {
-			report += beforeFormatted
+			change = beforeFormatted
 		} else {
-			report += beforeFormatted + " -> " + afterFormatted
+			change = beforeFormatted + " -> " + afterFormatted
 		}
+		report += method.explanation + " : " + change
 	}
 
 	return report + "\n"
@@ -110,7 +111,7 @@ type Method struct {
 	before       string
 	after        string
 	commonFactor string
-	distance     int
+	explanation  string
 }
 
 func (f *File) report() string {
@@ -133,7 +134,7 @@ func (f *File) breaks() (*[]Method, error) {
 		for _, added := range f.diff.addings {
 			if strings.HasPrefix(added, commonFactor) {
 				// It's only a move
-				if len(deleted) == len(added) {
+				if len(strings.Split(deleted, " ")) == len(strings.Split(added, " ")) && len(deleted) == len(added) {
 					moveOnly = true
 					break
 				} else {
@@ -141,12 +142,13 @@ func (f *File) breaks() (*[]Method, error) {
 				}
 			}
 		}
+
 		if !moveOnly {
 			method := Method{
 				before:       deleted,
 				after:        closestAdding,
 				commonFactor: commonFactor,
-				distance:     levenshtein.Dist(deleted, closestAdding),
+				explanation:  explainedChanges(deleted, closestAdding),
 			}
 			methods = append(methods, method)
 		}
@@ -183,6 +185,86 @@ func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
 	return supported, ignored
 }
 
+func (f *File) canHaveBreak() bool {
+	return "A" != f.status
+}
+
+// explainedChanges try to understand nature of changes, returning a reason
+// for compatibility break
+func explainedChanges(before string, after string) string {
+	if after == "" {
+		return "Deletion of method"
+	}
+
+	deleted, added := differences(strings.Split(before, ","), strings.Split(after, ","))
+	if len(deleted) > len(added) {
+		return "Deletion of parameter"
+	} else if len(deleted) < len(added) {
+		var explanation string
+		for i := 0; i < len(added); i++ {
+			if strings.Contains(added[i], "=") {
+				explanation = ""
+				continue
+			}
+			explanation = "Adding a parameter without default value"
+		}
+		return explanation
+	} else {
+		explanation := "Unknown signature change"
+		for i := 0; i < len(deleted); i++ {
+			if strings.Contains(deleted[i], "=") && !strings.Contains(added[i], "=") {
+				explanation = "Deletion of default parameter"
+				break
+			} else if !strings.Contains(added[i], "=") {
+				explanation = "Adding a parameter without default value"
+				break
+			}
+			// Precise cases :
+			//	- add type
+			//	- change type
+			// 	- drop type (not a CB)
+		}
+		return explanation
+	}
+}
+
+// differences shows a slice of differences between two slices
+func differences(before []string, after []string) ([]string, []string) {
+	var length int
+	lengthBefore := len(before)
+	lengthAfter := len(after)
+
+	if len(before) < len(after) {
+		for i := lengthBefore; i < lengthAfter; i++ {
+			before = append(before, "")
+		}
+		length = lengthAfter
+	} else {
+		for i := lengthAfter; i < lengthBefore; i++ {
+			after = append(after, "")
+		}
+		length = lengthBefore
+	}
+
+	var deleted []string
+	var added []string
+	for i := 0; i < length; i++ {
+		if before[i] == after[i] {
+			continue
+		}
+		if before[i] == "" {
+			added = append(added, after[i])
+		} else if after[i] == "" {
+			deleted = append(deleted, before[i])
+		} else {
+			deleted = append(deleted, before[i])
+			added = append(added, after[i])
+		}
+	}
+
+	return deleted, added
+}
+
 // extractDataFile gives file's name, status and type
 func extractDataFile(fileLine string) (string, string, string) {
 	fields := strings.Fields(fileLine)
@@ -206,20 +288,13 @@ func typefile(filepath string) string {
 	return typeFile
 }
 
-func (f *File) canHaveBreak() bool {
-	return "A" != f.status
-}
-
-func (f *File) isDeleted() bool {
-	return "D" == f.status
-}
-
 // Diff represents the diff of a file, segregated with deletion and adding
 type Diff struct {
 	deletions []string
 	addings   []string
 }
 
+// getDiff fetches diff (in a git sense) and extracts changes occured
 func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
 	if f.isDeleted() {
 		return f.getDiffDeleted(startObject)
@@ -248,6 +323,10 @@ func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
 		deletions: filteredByPattern(pattern, diffDeleted),
 		addings:   filteredByPattern(pattern, diffAdded),
 	}, nil
+}
+
+func (f *File) isDeleted() bool {
+	return "D" == f.status
 }
 
 func (f *File) getDiffDeleted(startObject string) (*Diff, error) {

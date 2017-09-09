@@ -26,7 +26,8 @@ func main() {
 		log.Fatal("Error during report construction : ", errReport)
 	}
 	title := "\nCheck-break report : " + cb.path + " " + cb.startPoint + " " + cb.endPoint
-	fmt.Println(strings.Repeat("#", len(title)), strings.ToTitle(title))
+	fmt.Println(strings.Repeat("#", len(title)), title)
+	fmt.Println("For details, see https://github.com/Prytoegrian/check-break#what-is-a-compatibility-break-")
 	fmt.Println()
 	if 0 == len(report.supported) {
 		fmt.Println("> No compatibility break")
