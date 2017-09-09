@@ -41,8 +41,10 @@ func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*Ch
 
 // BreakReport is a report to display
 type BreakReport struct {
-	supported []FileReport
-	ignored   []File
+	supported  []FileReport
+	ignored    []File
+	exclusions []string
+	// define a config file for exclusions (vendor, tests, ...) and for inclusions (public api definition)
 }
 
 // report displays a BreakReport
