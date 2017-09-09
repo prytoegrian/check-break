@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"errors"
@@ -15,12 +15,16 @@ import (
 
 // CheckBreak represents base structure required for evaluating code changes
 type CheckBreak struct {
-	workingPath string
-	startPoint  string
-	endPoint    string
+	WorkingPath string
+	StartPoint  string
+	EndPoint    string
 }
 
-func (cb *CheckBreak) init(workingPath string, startPoint string, endPoint string) (*CheckBreak, error) {
+func New() *CheckBreak {
+	return &CheckBreak{}
+}
+
+func (cb *CheckBreak) Init(workingPath string, startPoint string, endPoint string) (*CheckBreak, error) {
 	if errPath := os.Chdir(workingPath); errPath != nil {
 		return nil, errors.New("Path doesn't exist")
 	}
@@ -34,23 +38,23 @@ func (cb *CheckBreak) init(workingPath string, startPoint string, endPoint strin
 	}
 
 	return &CheckBreak{
-		workingPath: workingPath,
-		startPoint:  startPoint,
-		endPoint:    endPoint,
+		WorkingPath: workingPath,
+		StartPoint:  startPoint,
+		EndPoint:    endPoint,
 	}, nil
 }
 
 // BreakReport is a report to display
 type BreakReport struct {
-	supported  []FileReport
-	ignored    []File
+	Supported  []FileReport
+	Ignored    []File
 	exclusions []string
 	// define a config file for exclusions (vendor, tests, ...) and for inclusions (public api definition)
 }
 
 // report displays a BreakReport
-func (cb *CheckBreak) report() (*BreakReport, error) {
-	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.startPoint+"..."+cb.endPoint)
+func (cb *CheckBreak) Report() (*BreakReport, error) {
+	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.StartPoint+"..."+cb.EndPoint)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +75,8 @@ func (cb *CheckBreak) report() (*BreakReport, error) {
 	}
 
 	return &BreakReport{
-		supported: filesReports,
-		ignored:   ignored,
+		Supported: filesReports,
+		Ignored:   ignored,
 	}, nil
 }
 
@@ -83,7 +87,7 @@ type FileReport struct {
 }
 
 // report displays a FileReport and its potentials compatibility breaks
-func (fr *FileReport) report() string {
+func (fr *FileReport) Report() string {
 	report := ">> " + fr.filename
 	for _, method := range fr.methods {
 		var change string
@@ -117,7 +121,7 @@ type Method struct {
 	explanation  string
 }
 
-func (f *File) report() string {
+func (f *File) Report() string {
 	return fmt.Sprint(">> ", color.CyanString(f.name))
 }
 
@@ -172,7 +176,7 @@ func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
 		file.name = name
 		file.status = status
 		file.typeFile = filetype
-		diff, err := file.getDiff(cb.startPoint, cb.endPoint)
+		diff, err := file.getDiff(cb.StartPoint, cb.EndPoint)
 		if err == nil {
 			file.diff = *diff
 		}

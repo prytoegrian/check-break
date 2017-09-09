@@ -16,7 +16,10 @@ endef
 default : build
 
 build:
-	go build -o ./bin/check-break -v $(PACKAGE)/...
+	go build $(PACKAGE)/...
+
+install: build
+	go install ./
 
 major:
 	$(call make_version,major)

@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 	"strings"
-)
 
-var check *CheckBreak
+	"github.com/prytoegrian/check-break/check"
+)
 
 func main() {
 	args := os.Args[1:]
@@ -17,12 +17,13 @@ func main() {
 	workingPath := args[0]
 	startPoint := args[1]
 	endPoint := args[2]
-	cb, errInit := check.init(workingPath, startPoint, endPoint)
+	cb := check.New()
+	cb, errInit := cb.Init(workingPath, startPoint, endPoint)
 	if errInit != nil {
 		log.Fatal("Init failed : ", errInit)
 	}
 	displayTitle(cb)
-	report, errReport := cb.report()
+	report, errReport := cb.Report()
 	if errReport != nil {
 		log.Fatal("Error during report construction : ", errReport)
 	}
@@ -30,32 +31,32 @@ func main() {
 	displayIgnored(report)
 }
 
-func displayTitle(cb *CheckBreak) {
-	title := "\nCheck-break report : " + cb.workingPath + " " + cb.startPoint + " " + cb.endPoint
+func displayTitle(cb *check.CheckBreak) {
+	title := "\nCheck-break report : " + cb.WorkingPath + " " + cb.StartPoint + " " + cb.EndPoint
 	fmt.Println(strings.Repeat("#", len(title)), title)
 	fmt.Println("For details, see https://github.com/Prytoegrian/check-break#what-is-a-compatibility-break-")
 	fmt.Println()
 }
 
-func displayBreaks(report *BreakReport) {
-	if 0 == len(report.supported) {
+func displayBreaks(report *check.BreakReport) {
+	if 0 == len(report.Supported) {
 		fmt.Println("> No compatibility break")
 	} else {
 		potential := "> Potentials compatibility breaks"
 		fmt.Println(potential, "\n", strings.Repeat("-", len(potential)))
 
-		for _, fileReport := range report.supported {
-			fmt.Println(fileReport.report())
+		for _, fileReport := range report.Supported {
+			fmt.Println(fileReport.Report())
 		}
 	}
 }
 
-func displayIgnored(report *BreakReport) {
-	if 0 != len(report.ignored) {
+func displayIgnored(report *check.BreakReport) {
+	if 0 != len(report.Ignored) {
 		ignored := "\n> Unsupported files"
 		fmt.Println(ignored, "\n", strings.Repeat("-", len(ignored)))
-		for _, fileIgnored := range report.ignored {
-			fmt.Println(fileIgnored.report())
+		for _, fileIgnored := range report.Ignored {
+			fmt.Println(fileIgnored.Report())
 		}
 	}
 }
