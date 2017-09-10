@@ -1,6 +1,7 @@
-package main
+package check
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -13,14 +14,17 @@ import (
 	"github.com/tbruyelle/qexec"
 )
 
-type CheckBreak struct {
-	path       string
-	startPoint string
-	endPoint   string
+// Break represents base structure required for evaluating code changes
+type Break struct {
+	workingPath string
+	startPoint  string
+	endPoint    string
+	config      *config
 }
 
-func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*CheckBreak, error) {
-	if errPath := os.Chdir(path); errPath != nil {
+// Init bootstraps Break structure
+func Init(workingPath string, startPoint string, endPoint string, configPath string) (*Break, error) {
+	if errPath := os.Chdir(workingPath); errPath != nil {
 		return nil, errors.New("Path doesn't exist")
 	}
 
@@ -31,31 +35,60 @@ func (cb *CheckBreak) init(path string, startPoint string, endPoint string) (*Ch
 	if exists, _ := git.RefExists(endPoint); !exists {
 		return nil, fmt.Errorf("The object %s doesn't exist", endPoint)
 	}
-
-	return &CheckBreak{
-		path:       path,
-		startPoint: startPoint,
-		endPoint:   endPoint,
-	}, nil
-}
-
-// BreakReport is a report to display
-type BreakReport struct {
-	supported []FileReport
-	ignored   []File
-}
-
-// report displays a BreakReport
-func (cb *CheckBreak) report() (*BreakReport, error) {
-	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.startPoint+"..."+cb.endPoint)
+	config, err := loadConfiguration(configPath)
 	if err != nil {
 		return nil, err
 	}
 
-	supported, ignored := files(gitFiles, *cb)
+	return &Break{
+		workingPath: workingPath,
+		startPoint:  startPoint,
+		endPoint:    endPoint,
+		config:      config,
+	}, nil
+}
+
+type config struct {
+	Excluded struct {
+		Path string `json:"path"`
+	} `json:"excluded"`
+}
+
+func loadConfiguration(configPath string) (*config, error) {
+	var conf config
+	if configPath == "" {
+		return &conf, nil
+	}
+	configFile, err := os.Open(configPath)
+	defer configFile.Close()
+	if err != nil {
+		return nil, err
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&conf)
+	return &conf, nil
+}
+
+// BreakReport is a report to display
+type BreakReport struct {
+	Supported  []FileReport
+	Ignored    []file
+	Exclusions []string
+}
+
+// Report displays a BreakReport
+func (b *Break) Report() (*BreakReport, error) {
+	gitFiles, err := qexec.Run("git", "diff", "--name-status", b.startPoint+"..."+b.endPoint)
+	if err != nil {
+		return nil, err
+	}
+	f := strings.Split(strings.TrimSpace(gitFiles), "\n")
+	supported, ignored := files(f, *b)
+	analysables := b.filter(supported)
+	ignored = b.filter(ignored)
 
 	filesReports := make([]FileReport, 0)
-	for _, file := range supported {
+	for _, file := range analysables {
 		methods, _ := file.breaks()
 
 		if 0 != len(*methods) {
@@ -68,20 +101,51 @@ func (cb *CheckBreak) report() (*BreakReport, error) {
 	}
 
 	return &BreakReport{
-		supported: filesReports,
-		ignored:   ignored,
+		Supported:  filesReports,
+		Ignored:    ignored,
+		Exclusions: b.exclusions(),
 	}, nil
+}
+
+// filter drops a file if it satisfies exclusion criteria
+func (b *Break) filter(files []file) []file {
+	excluded := make([]string, 0)
+	if 0 == len(b.exclusions()) {
+		return files
+	}
+	filtered := make([]file, 0)
+	excluded = append(excluded, b.config.Excluded.Path)
+	for _, f := range files {
+		for _, e := range excluded {
+			if strings.HasPrefix(f.name, e) {
+				continue
+			}
+			filtered = append(filtered, f)
+		}
+	}
+
+	return filtered
+}
+
+// exclusions is the exclusion list provided by config file
+func (b *Break) exclusions() []string {
+	excluded := make([]string, 0)
+	if b.config.Excluded.Path != "" {
+		excluded = append(excluded, b.config.Excluded.Path)
+	}
+
+	return excluded
 }
 
 // FileReport is a pool of potentials compatibility breaks
 type FileReport struct {
-	methods  []Method
+	methods  []method
 	filename string
 }
 
-// report displays a FileReport and its potentials compatibility breaks
-func (fr *FileReport) report() string {
-	report := ">> " + fr.filename
+// Report displays a FileReport and its potentials compatibility breaks
+func (fr *FileReport) Report() string {
+	report := ">> " + color.CyanString(fr.filename+" :")
 	for _, method := range fr.methods {
 		var change string
 		report += "\n"
@@ -98,34 +162,34 @@ func (fr *FileReport) report() string {
 	return report + "\n"
 }
 
-// File is a file representation
-type File struct {
+// file is a file representation
+type file struct {
 	name     string
 	status   string
-	diff     Diff
+	diff     diff
 	typeFile string
 }
 
-// Method is a potential break on a public method
-type Method struct {
+// method is a potential break on a public method
+type method struct {
 	before       string
 	after        string
 	commonFactor string
 	explanation  string
 }
 
-func (f *File) report() string {
+func (f *file) Report() string {
 	return fmt.Sprint(">> ", color.CyanString(f.name))
 }
 
 // breaks returns all potentials CB on a file
-func (f *File) breaks() (*[]Method, error) {
+func (f *file) breaks() (*[]method, error) {
 	pattern, err := f.breakPattern()
 	if err != nil {
 		return nil, err
 	}
 
-	var methods []Method
+	var methods []method
 	var moveOnly bool
 	for _, deleted := range f.diff.deletions {
 		var closestAdding string
@@ -145,7 +209,7 @@ func (f *File) breaks() (*[]Method, error) {
 
 		explanation := explainedChanges(deleted, closestAdding)
 		if !moveOnly && explanation != "" {
-			method := Method{
+			method := method{
 				before:       deleted,
 				after:        closestAdding,
 				commonFactor: commonFactor,
@@ -159,26 +223,26 @@ func (f *File) breaks() (*[]Method, error) {
 }
 
 // files initializes files struct
-func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
-	supported := make([]File, 0)
-	ignored := make([]File, 0)
+func files(changedFiles []string, b Break) ([]file, []file) {
+	supported := make([]file, 0)
+	ignored := make([]file, 0)
 
-	for _, fileLine := range strings.Split(strings.TrimSpace(filenamesDiff), "\n") {
-		file := File{}
+	for _, fileLine := range changedFiles {
+		f := file{}
 		status, name, filetype := extractDataFile(fileLine)
-		file.name = name
-		file.status = status
-		file.typeFile = filetype
-		diff, err := file.getDiff(cb.startPoint, cb.endPoint)
+		f.name = name
+		f.status = status
+		f.typeFile = filetype
+		diff, err := f.getDiff(b.startPoint, b.endPoint)
 		if err == nil {
-			file.diff = *diff
+			f.diff = *diff
 		}
 
-		if file.canHaveBreak() {
-			if file.isTypeSupported() {
-				supported = append(supported, file)
+		if f.canHaveBreak() {
+			if f.isTypeSupported() {
+				supported = append(supported, f)
 			} else {
-				ignored = append(ignored, file)
+				ignored = append(ignored, f)
 			}
 		}
 	}
@@ -186,7 +250,7 @@ func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
 	return supported, ignored
 }
 
-func (f *File) canHaveBreak() bool {
+func (f *file) canHaveBreak() bool {
 	return "A" != f.status
 }
 
@@ -289,18 +353,18 @@ func typefile(filepath string) string {
 	return typeFile
 }
 
-// Diff represents the diff of a file, segregated with deletion and adding
-type Diff struct {
+// diff represents the diff of a file, segregated with deletion and adding
+type diff struct {
 	deletions []string
 	addings   []string
 }
 
 // getDiff fetches diff (in a git sense) and extracts changes occured
-func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
+func (f *file) getDiff(startObject string, endObject string) (*diff, error) {
 	if f.isDeleted() {
 		return f.getDiffDeleted(startObject)
 	}
-	diff, err := qexec.Run("git", "diff", "-U0", startObject+"..."+endObject, f.name)
+	command, err := qexec.Run("git", "diff", "-U0", startObject+"..."+endObject, f.name)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +376,7 @@ func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
 
 	var diffDeleted []string
 	var diffAdded []string
-	for _, line := range strings.Split(diff, "\n") {
+	for _, line := range strings.Split(command, "\n") {
 		if strings.HasPrefix(line, "-") {
 			diffDeleted = append(diffDeleted, strings.TrimSpace(line[1:]))
 		} else if strings.HasPrefix(line, "+") {
@@ -320,17 +384,17 @@ func (f *File) getDiff(startObject string, endObject string) (*Diff, error) {
 		}
 	}
 
-	return &Diff{
+	return &diff{
 		deletions: filteredByPattern(pattern, diffDeleted),
 		addings:   filteredByPattern(pattern, diffAdded),
 	}, nil
 }
 
-func (f *File) isDeleted() bool {
+func (f *file) isDeleted() bool {
 	return "D" == f.status
 }
 
-func (f *File) getDiffDeleted(startObject string) (*Diff, error) {
+func (f *file) getDiffDeleted(startObject string) (*diff, error) {
 	fileDeleted, err := qexec.Run("git", "show", startObject+":"+f.name)
 	if err != nil {
 		return nil, err
@@ -345,7 +409,7 @@ func (f *File) getDiffDeleted(startObject string) (*Diff, error) {
 		diffDeleted = append(diffDeleted, strings.TrimSpace(line))
 	}
 
-	return &Diff{
+	return &diff{
 		deletions: filteredByPattern(pattern, diffDeleted),
 	}, nil
 }
@@ -362,7 +426,7 @@ func filteredByPattern(r *regexp.Regexp, data []string) []string {
 	return filtered
 }
 
-func (f *File) isTypeSupported() bool {
+func (f *file) isTypeSupported() bool {
 	_, err := f.breakPattern()
 
 	return err == nil
@@ -370,7 +434,7 @@ func (f *File) isTypeSupported() bool {
 
 // breakPattern returns the regex of a potential compatibility break associated
 // with type of the file
-func (f *File) breakPattern() (*regexp.Regexp, error) {
+func (f *file) breakPattern() (*regexp.Regexp, error) {
 	var pattern *regexp.Regexp
 	switch f.typeFile {
 	case "go":
