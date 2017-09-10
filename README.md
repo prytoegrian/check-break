@@ -2,7 +2,9 @@
 [![BCH compliance](https://bettercodehub.com/edge/badge/Prytoegrian/check-break?branch=master)](https://bettercodehub.com/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/6f9a3e0c93ce4fb28c778019ad083179)](https://www.codacy.com/app/prytoegrian/check-break?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Prytoegrian/check-break&amp;utm_campaign=Badge_Grade)
 
-Check-break helps you to discover compatibility breaks in your code, and improve decisions-making to determine if a new major version is required. In few words, if you follow *semver* (or try to stick to it), you must use `check-break` ;-)
+`check-break` helps you to discover compatibility breaks in your code, and improve decisions-making to determine if a new major version is required. In few words, if you follow *semver* (or try to stick to it), you must use `check-break` ;-)
+
+`check-break` itself is following `semver` and monitor its own changes. For now, it's under heavy development, use it at your own risks, compatibility breaks could happen at every moment.
 
 ## What is a compatibility break ?
 Basically, following the semver definition :  
@@ -50,4 +52,4 @@ Obviously, I started with langages I use in a daily-basis :
 
 Feel free to participate to add yours, correct bugs, improve software design, etc. `check-break` is under [GPL3](LICENCE).
 
-Please remember that this tool may be incomplete. It doesn't replace the human judgment.
+Please remember that this tool may be incomplete, it doesn't replace the human judgment.
