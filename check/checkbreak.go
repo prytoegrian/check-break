@@ -25,7 +25,7 @@ type Break struct {
 // Init bootstraps Break structure
 func Init(workingPath string, startPoint string, endPoint string, configPath string) (*Break, error) {
 	if errPath := os.Chdir(workingPath); errPath != nil {
-		return nil, errors.New("Path doesn't exist")
+		return nil, fmt.Errorf("Path %s doesn't exist", workingPath)
 	}
 
 	if exists, _ := git.RefExists(startPoint); !exists {

@@ -4,26 +4,25 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/prytoegrian/check-break/check"
+	"github.com/tbruyelle/qexec"
 )
 
 func main() {
-	path := flag.String("p", "", "Path to analyse")
+	path := flag.String("p", "", "Path to analyse (optional)")
 	startingPoint := flag.String("s", "", "Git starting point")
 	endingPoint := flag.String("e", "", "Git ending point")
 	configPath := flag.String("c", "", "Config file path (optional)")
 	flag.Parse()
-	if *path == "" {
-		log.Fatalln("Path is missing")
-	}
 	if *startingPoint == "" {
-		log.Fatalln("Starting point is missing")
+		log.Fatalln("Starting point is missing, use -h for details")
 	}
 	if *endingPoint == "" {
-		log.Fatalln("Ending point is missing")
+		log.Fatalln("Ending point is missing, use -h for details")
 	}
-	b, errInit := check.Init(*path, *startingPoint, *endingPoint, *configPath)
+	b, errInit := check.Init(workingPath(*path), *startingPoint, *endingPoint, *configPath)
 	if errInit != nil {
 		log.Fatal("Init failed : ", errInit)
 	}
@@ -38,8 +37,18 @@ func main() {
 	displayExclusions(report)
 }
 
+func workingPath(userPath string) string {
+	if userPath != "" {
+		return userPath
+	}
+	path, err := qexec.Run("pwd")
+	if err != nil {
+		log.Fatalln(err, path)
+	}
+	return strings.TrimSpace(path)
+}
+
 func displayTitle(b *check.Break) {
-	fmt.Println("Check-break report")
 	fmt.Println("(For details, please consult https://github.com/Prytoegrian/check-break#what-is-a-compatibility-break-)")
 	fmt.Println()
 }
