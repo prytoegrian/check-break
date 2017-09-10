@@ -4,7 +4,7 @@
 
 `check-break` helps you to discover compatibility breaks in your code, and improve decisions-making to determine if a new major version is required. In few words, if you follow *semver* (or try to stick to it), you must use `check-break` ;-)
 
-`check-break` itself is following `semver` and monitor its own changes. For now, it's under heavy development, use it at your own risks, compatibility breaks could happen at every moment.
+`check-break` itself is following `semver` and monitors its own changes. For now, it's under heavy development, use it at your own risks, compatibility breaks could happen at every moment.
 
 ## What is a compatibility break ?
 Basically, following the semver definition :  
@@ -18,7 +18,7 @@ All starts with a clear definition of **public API** in your context. Once done,
 - a return type is added (*without a default value*)
 - type of any input / output / exception / assertion is changed and is incompatible with the former one (**1**)
 
-**1.** In other words, if you're comfortable with Liskov principle, you might have heard :
+**1.** In other words, if you're comfortable with [Liskov principle](https://en.wikipedia.org/wiki/Liskov_substitution_principle), you might have heard :
 > Be contravariant in yours preconditions, be covariant with yours postconditions.
 
 Thus, a compatibility break happens when you're covariant in yours preconditions or contravariant in yours postconditions.
