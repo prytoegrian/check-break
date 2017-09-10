@@ -263,26 +263,26 @@ func explainedChanges(before string, after string) string {
 
 	deleted, added := differences(strings.Split(before, ","), strings.Split(after, ","))
 	if len(deleted) > len(added) {
+		if hasDefaultParameter(deleted) && !hasDefaultParameter(added) {
+			return "Deletion of default parameter"
+		}
 		return "Deletion of parameter"
 	} else if len(deleted) < len(added) {
 		var explanation string
 		for i := 0; i < len(added); i++ {
-			if strings.Contains(added[i], "=") {
-				explanation = ""
-				continue
+			if !hasDefaultParameter(added) {
+				explanation = "Adding a parameter without default value"
 			}
-			explanation = "Adding a parameter without default value"
 		}
 		return explanation
 	} else {
 		explanation := "Unknown signature change"
 		for i := 0; i < len(deleted); i++ {
-			if strings.Contains(deleted[i], "=") && !strings.Contains(added[i], "=") {
-				explanation = "Deletion of default parameter"
-				break
-			} else if !strings.Contains(added[i], "=") {
-				explanation = "Adding a parameter without default value"
-				break
+			if !hasDefaultParameter(added) {
+				if hasDefaultParameter(deleted) {
+					return "Deletion of default parameter"
+				}
+				return "Adding a parameter without default value"
 			}
 			// TODO : Precise cases :
 			//	- add type
@@ -293,7 +293,17 @@ func explainedChanges(before string, after string) string {
 	}
 }
 
-// differences shows a slice of differences between two slices
+func hasDefaultParameter(slice []string) bool {
+	for _, s := range slice {
+		if strings.Contains(s, "=") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// differences shows slices of differences (deletion, adding) between two slices
 func differences(before []string, after []string) ([]string, []string) {
 	var length int
 	lengthBefore := len(before)
