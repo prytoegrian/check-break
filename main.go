@@ -47,6 +47,7 @@ func displayTitle(b *check.Break) {
 func displayBreaks(report *check.BreakReport) {
 	if 0 == len(report.Supported) {
 		fmt.Println("> No compatibility break")
+		fmt.Println()
 	} else {
 		fmt.Println("> Potentials compatibility breaks")
 		for _, fileReport := range report.Supported {
@@ -57,7 +58,7 @@ func displayBreaks(report *check.BreakReport) {
 
 func displayIgnored(report *check.BreakReport) {
 	if 0 != len(report.Ignored) {
-		fmt.Println("Unsupported files :")
+		fmt.Println("> Unsupported files :")
 		for _, fileIgnored := range report.Ignored {
 			fmt.Println(fileIgnored.Report())
 		}
