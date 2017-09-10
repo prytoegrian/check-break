@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/tbruyelle/git"
-	"github.com/tbruyelle/qexec"
 )
 
 // Break represents base structure required for evaluating code changes
@@ -28,11 +26,11 @@ func Init(workingPath string, startPoint string, endPoint string, configPath str
 		return nil, fmt.Errorf("Path %s doesn't exist", workingPath)
 	}
 
-	if exists, _ := git.RefExists(startPoint); !exists {
+	if !refExists(startPoint) {
 		return nil, fmt.Errorf("The object %s doesn't exist", startPoint)
 	}
 
-	if exists, _ := git.RefExists(endPoint); !exists {
+	if !refExists(endPoint) {
 		return nil, fmt.Errorf("The object %s doesn't exist", endPoint)
 	}
 	config, err := loadConfiguration(configPath)
@@ -78,11 +76,10 @@ type BreakReport struct {
 
 // Report displays a BreakReport
 func (b *Break) Report() (*BreakReport, error) {
-	gitFiles, err := qexec.Run("git", "diff", "--name-status", b.startPoint+"..."+b.endPoint)
+	f, err := diffFileList(b.startPoint, b.endPoint)
 	if err != nil {
 		return nil, err
 	}
-	f := strings.Split(strings.TrimSpace(gitFiles), "\n")
 	supported, ignored := files(f, *b)
 	analysables := b.filter(supported)
 	ignored = b.filter(ignored)
@@ -374,7 +371,7 @@ func (f *file) getDiff(startObject string, endObject string) (*diff, error) {
 	if f.isDeleted() {
 		return f.getDiffDeleted(startObject)
 	}
-	command, err := qexec.Run("git", "diff", "-U0", startObject+"..."+endObject, f.name)
+	diffFile, err := diffFile(startObject, endObject, f.name)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +383,7 @@ func (f *file) getDiff(startObject string, endObject string) (*diff, error) {
 
 	var diffDeleted []string
 	var diffAdded []string
-	for _, line := range strings.Split(command, "\n") {
+	for _, line := range diffFile {
 		if strings.HasPrefix(line, "-") {
 			diffDeleted = append(diffDeleted, strings.TrimSpace(line[1:]))
 		} else if strings.HasPrefix(line, "+") {
@@ -405,7 +402,7 @@ func (f *file) isDeleted() bool {
 }
 
 func (f *file) getDiffDeleted(startObject string) (*diff, error) {
-	fileDeleted, err := qexec.Run("git", "show", startObject+":"+f.name)
+	diffFile, err := showFile(startObject, f.name)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +412,7 @@ func (f *file) getDiffDeleted(startObject string) (*diff, error) {
 		return nil, errPattern
 	}
 	var diffDeleted []string
-	for _, line := range strings.Split(fileDeleted, "\n") {
+	for _, line := range diffFile {
 		diffDeleted = append(diffDeleted, strings.TrimSpace(line))
 	}
 
