@@ -25,6 +25,12 @@ Since `check-break` can't guess your public API (yet), it shows you all changes 
 - this change really is a break,
 - this change is in the public API scope.
 
+## First launch
+```sh
+make install
+```
+That's it.
+
 ## Usage
 This tool is based upon `git`, and particularly on diff between two points. Thus, the syntax is as follows :
 ```sh

@@ -13,7 +13,7 @@ define make_version
 	@git tag -a `semver tag` -m "Releasing `semver tag`"
 endef
 
-default : build
+default : install
 
 build:
 	go build $(PACKAGE)/...

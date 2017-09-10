@@ -13,18 +13,15 @@ import (
 	"github.com/tbruyelle/qexec"
 )
 
-// CheckBreak represents base structure required for evaluating code changes
-type CheckBreak struct {
-	WorkingPath string
-	StartPoint  string
-	EndPoint    string
+// Break represents base structure required for evaluating code changes
+type Break struct {
+	workingPath string
+	startPoint  string
+	endPoint    string
 }
 
-func New() *CheckBreak {
-	return &CheckBreak{}
-}
-
-func (cb *CheckBreak) Init(workingPath string, startPoint string, endPoint string) (*CheckBreak, error) {
+// Init bootstraps Break structure
+func Init(workingPath string, startPoint string, endPoint string) (*Break, error) {
 	if errPath := os.Chdir(workingPath); errPath != nil {
 		return nil, errors.New("Path doesn't exist")
 	}
@@ -37,10 +34,10 @@ func (cb *CheckBreak) Init(workingPath string, startPoint string, endPoint strin
 		return nil, fmt.Errorf("The object %s doesn't exist", endPoint)
 	}
 
-	return &CheckBreak{
-		WorkingPath: workingPath,
-		StartPoint:  startPoint,
-		EndPoint:    endPoint,
+	return &Break{
+		workingPath: workingPath,
+		startPoint:  startPoint,
+		endPoint:    endPoint,
 	}, nil
 }
 
@@ -52,14 +49,14 @@ type BreakReport struct {
 	// define a config file for exclusions (vendor, tests, ...) and for inclusions (public api definition)
 }
 
-// report displays a BreakReport
-func (cb *CheckBreak) Report() (*BreakReport, error) {
-	gitFiles, err := qexec.Run("git", "diff", "--name-status", cb.StartPoint+"..."+cb.EndPoint)
+// Report displays a BreakReport
+func (b *Break) Report() (*BreakReport, error) {
+	gitFiles, err := qexec.Run("git", "diff", "--name-status", b.startPoint+"..."+b.endPoint)
 	if err != nil {
 		return nil, err
 	}
 
-	supported, ignored := files(gitFiles, *cb)
+	supported, ignored := files(gitFiles, *b)
 
 	filesReports := make([]FileReport, 0)
 	for _, file := range supported {
@@ -86,9 +83,9 @@ type FileReport struct {
 	filename string
 }
 
-// report displays a FileReport and its potentials compatibility breaks
+// Report displays a FileReport and its potentials compatibility breaks
 func (fr *FileReport) Report() string {
-	report := ">> " + fr.filename
+	report := ">> " + color.CyanString(fr.filename+" :")
 	for _, method := range fr.methods {
 		var change string
 		report += "\n"
@@ -166,7 +163,7 @@ func (f *File) breaks() (*[]Method, error) {
 }
 
 // files initializes files struct
-func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
+func files(filenamesDiff string, b Break) ([]File, []File) {
 	supported := make([]File, 0)
 	ignored := make([]File, 0)
 
@@ -176,7 +173,7 @@ func files(filenamesDiff string, cb CheckBreak) ([]File, []File) {
 		file.name = name
 		file.status = status
 		file.typeFile = filetype
-		diff, err := file.getDiff(cb.StartPoint, cb.EndPoint)
+		diff, err := file.getDiff(b.startPoint, b.endPoint)
 		if err == nil {
 			file.diff = *diff
 		}
