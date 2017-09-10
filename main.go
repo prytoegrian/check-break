@@ -1,25 +1,33 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/prytoegrian/check-break/check"
 )
 
 func main() {
-	args := os.Args[1:]
-	if 3 > len(args) {
-		log.Fatal("Not enough arguments")
+	path := flag.String("p", "", "Path to analyse")
+	startingPoint := flag.String("s", "", "Git starting point")
+	endingPoint := flag.String("e", "", "Git ending point")
+	configPath := flag.String("c", "", "Config file path (optional)")
+	flag.Parse()
+	if *path == "" {
+		log.Fatalln("Path is missing")
 	}
-	workingPath := args[0]
-	startPoint := args[1]
-	endPoint := args[2]
-	b, errInit := check.Init(workingPath, startPoint, endPoint)
+	if *startingPoint == "" {
+		log.Fatalln("Starting point is missing")
+	}
+	if *endingPoint == "" {
+		log.Fatalln("Ending point is missing")
+	}
+	b, errInit := check.Init(*path, *startingPoint, *endingPoint, *configPath)
 	if errInit != nil {
 		log.Fatal("Init failed : ", errInit)
 	}
+
 	displayTitle(b)
 	report, errReport := b.Report()
 	if errReport != nil {
