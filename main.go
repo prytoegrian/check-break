@@ -35,6 +35,7 @@ func main() {
 	}
 	displayBreaks(report)
 	displayIgnored(report)
+	displayExclusions(report)
 }
 
 func displayTitle(b *check.Break) {
@@ -56,9 +57,18 @@ func displayBreaks(report *check.BreakReport) {
 
 func displayIgnored(report *check.BreakReport) {
 	if 0 != len(report.Ignored) {
-		fmt.Println("\n> Unsupported files :")
+		fmt.Println("Unsupported files :")
 		for _, fileIgnored := range report.Ignored {
 			fmt.Println(fileIgnored.Report())
+		}
+	}
+}
+
+func displayExclusions(r *check.BreakReport) {
+	if 0 != len(r.Exclusions) {
+		fmt.Println("\n> Excluded paths :")
+		for _, e := range r.Exclusions {
+			fmt.Println(">>", e)
 		}
 	}
 }

@@ -34,7 +34,7 @@ That's it.
 ## Usage
 This tool is based upon `git`, and particularly on diff between two points. Thus, the syntax is as follows :
 ```sh
-$ check-break path_to_git_repository starting_point ending_point
+$ check-break -p path_to_git_repository -s starting_point -e ending_point [-c path_to_config]
 ```
 
 **Note:** All unsupported files are also reported as such, in order not to give a feeling of false negative.

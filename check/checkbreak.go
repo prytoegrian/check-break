@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"regexp"
@@ -40,7 +39,6 @@ func Init(workingPath string, startPoint string, endPoint string, configPath str
 	if err != nil {
 		return nil, err
 	}
-	log.Println(config)
 
 	return &Break{
 		workingPath: workingPath,
@@ -75,8 +73,7 @@ func loadConfiguration(configPath string) (*config, error) {
 type BreakReport struct {
 	Supported  []FileReport
 	Ignored    []file
-	exclusions []string
-	// define a config file for exclusions (vendor, tests, ...) and for inclusions (public api definition)
+	Exclusions []string
 }
 
 // Report displays a BreakReport
@@ -85,11 +82,13 @@ func (b *Break) Report() (*BreakReport, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	supported, ignored := files(gitFiles, *b)
+	f := strings.Split(strings.TrimSpace(gitFiles), "\n")
+	supported, ignored := files(f, *b)
+	analysables := b.filter(supported)
+	ignored = b.filter(ignored)
 
 	filesReports := make([]FileReport, 0)
-	for _, file := range supported {
+	for _, file := range analysables {
 		methods, _ := file.breaks()
 
 		if 0 != len(*methods) {
@@ -102,9 +101,40 @@ func (b *Break) Report() (*BreakReport, error) {
 	}
 
 	return &BreakReport{
-		Supported: filesReports,
-		Ignored:   ignored,
+		Supported:  filesReports,
+		Ignored:    ignored,
+		Exclusions: b.exclusions(),
 	}, nil
+}
+
+// filter drops a file if it satisfies exclusion criteria
+func (b *Break) filter(files []file) []file {
+	excluded := make([]string, 0)
+	if 0 == len(b.exclusions()) {
+		return files
+	}
+	filtered := make([]file, 0)
+	excluded = append(excluded, b.config.Excluded.Path)
+	for _, f := range files {
+		for _, e := range excluded {
+			if strings.HasPrefix(f.name, e) {
+				continue
+			}
+			filtered = append(filtered, f)
+		}
+	}
+
+	return filtered
+}
+
+// exclusions is the exclusion list provided by config file
+func (b *Break) exclusions() []string {
+	excluded := make([]string, 0)
+	if b.config.Excluded.Path != "" {
+		excluded = append(excluded, b.config.Excluded.Path)
+	}
+
+	return excluded
 }
 
 // FileReport is a pool of potentials compatibility breaks
@@ -193,26 +223,26 @@ func (f *file) breaks() (*[]method, error) {
 }
 
 // files initializes files struct
-func files(filenamesDiff string, b Break) ([]file, []file) {
+func files(changedFiles []string, b Break) ([]file, []file) {
 	supported := make([]file, 0)
 	ignored := make([]file, 0)
 
-	for _, fileLine := range strings.Split(strings.TrimSpace(filenamesDiff), "\n") {
-		file := file{}
+	for _, fileLine := range changedFiles {
+		f := file{}
 		status, name, filetype := extractDataFile(fileLine)
-		file.name = name
-		file.status = status
-		file.typeFile = filetype
-		diff, err := file.getDiff(b.startPoint, b.endPoint)
+		f.name = name
+		f.status = status
+		f.typeFile = filetype
+		diff, err := f.getDiff(b.startPoint, b.endPoint)
 		if err == nil {
-			file.diff = *diff
+			f.diff = *diff
 		}
 
-		if file.canHaveBreak() {
-			if file.isTypeSupported() {
-				supported = append(supported, file)
+		if f.canHaveBreak() {
+			if f.isTypeSupported() {
+				supported = append(supported, f)
 			} else {
-				ignored = append(ignored, file)
+				ignored = append(ignored, f)
 			}
 		}
 	}
