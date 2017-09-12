@@ -14,6 +14,7 @@ All starts with a clear definition of **public API** in your context. Once done,
 - an argument is removed
 - an argument is added (*without a default value*)
 - a default argument is removed
+- a default value is changed
 - a return type is removed
 - a return type is added (*without a default value*)
 - type of any input / output / exception / assertion is changed and is incompatible with the former one (**1**)
