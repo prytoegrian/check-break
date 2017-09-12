@@ -28,6 +28,7 @@ Since `check-break` can't guess your public API (yet), it shows you all changes 
 - this change is in the public API scope.
 
 ## First launch
+(*Assuming there's a golang env on your system*)
 ```sh
 make install
 ```
@@ -36,7 +37,7 @@ That's it.
 ## Usage
 This tool is based upon `git`, and particularly on diff between two points. Thus, the syntax is as follows :
 ```sh
-$ check-break -p path_to_git_repository -s starting_point -e ending_point [-c path_to_config]
+$ check-break -s starting_point -e ending_point [-p path_to_git_repository] [-c path_to_config]
 ```
 
 **Note:** All unsupported files are also reported as such, in order not to give a feeling of false negative.
