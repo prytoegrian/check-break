@@ -11,12 +11,12 @@ Basically, following the semver definition :
 > A change is incompatible if it removes a possibility for the consumer in the public API.
 
 All starts with a clear definition of **public API** in your context. Once done, a compatibility break occurs on all **public API** functions each time :
+- a function is removed
 - an argument is removed
 - an argument is added (*without a default value*)
 - a default argument is removed
 - a default value is changed
 - a return type is removed
-- a return type is added (*without a default value*)
 - type of any input / output / exception / assertion is changed and is incompatible with the former one (**1**)
 
 **1.** In other words, if you're comfortable with [Liskov principle](https://en.wikipedia.org/wiki/Liskov_substitution_principle), you might have heard :
@@ -38,7 +38,7 @@ That's it.
 ## Usage
 This tool is based upon `git`, and particularly on diff between two points. Thus, the syntax is as follows :
 ```sh
-$ check-break -s starting_point -e ending_point [-p path_to_git_repository] [-c path_to_config]
+$ check-break -s starting_point -e ending_point [-p path_to_git_repository] [-c path_to_config_file]
 ```
 
 **Note:** All unsupported files are also reported as such, in order not to give a feeling of false negative.
@@ -52,6 +52,6 @@ Obviously, I started with langages I use in a daily-basis :
 - PHP
 - sh
 
-Feel free to participate to add yours, correct bugs, improve software design, etc. `check-break` is under [GPL3](LICENCE).
+Feel free to participate to add yours, correct bugs, improve design, etc. `check-break` is under [GPL3](LICENCE).
 
 Please remember that this tool may be incomplete, it doesn't replace the human judgment.
