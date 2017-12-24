@@ -1,5 +1,5 @@
 {
     "excluded": {
-        "path" : "relative/path/to/workingdir"
+        "path" : ["relative/path/to/workingdir", "secondPath"]
     }
 }

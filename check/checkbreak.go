@@ -46,17 +46,21 @@ func (b *Break) HasConfiguration() bool {
 
 // filter drops a file if it satisfies exclusion criteria
 func (b *Break) filter(files []file) []file {
-	excluded := make([]string, 0)
 	if 0 == len(b.exclusions()) {
 		return files
 	}
 	filtered := make([]file, 0)
-	excluded = append(excluded, b.config.Excluded.Path)
+	var toExclude bool
+	excluded := b.config.Excluded.Path
 	for _, f := range files {
+		toExclude = false
 		for _, e := range excluded {
 			if strings.HasPrefix(f.name, e) {
-				continue
+				toExclude = true
+				break
 			}
+		}
+		if !toExclude {
 			filtered = append(filtered, f)
 		}
 	}
@@ -67,8 +71,10 @@ func (b *Break) filter(files []file) []file {
 // exclusions is the exclusion list provided by config file
 func (b *Break) exclusions() []string {
 	excluded := make([]string, 0)
-	if b.HasConfiguration() && b.config.Excluded.Path != "" {
-		excluded = append(excluded, b.config.Excluded.Path)
+	if b.HasConfiguration() {
+		for _, path := range b.config.Excluded.Path {
+			excluded = append(excluded, path)
+		}
 	}
 
 	return excluded

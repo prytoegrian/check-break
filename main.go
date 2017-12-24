@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/prytoegrian/check-break/check"
-	"github.com/tbruyelle/qexec"
 )
 
 func main() {
@@ -41,7 +41,7 @@ func workingPath(userPath string) string {
 	if userPath != "" {
 		return userPath
 	}
-	path, err := qexec.Run("pwd")
+	path, err := os.Getwd()
 	if err != nil {
 		log.Fatalln(err, path)
 	}
@@ -52,6 +52,8 @@ func displayTitle(b *check.Break) {
 	fmt.Println("(For details, please consult https://github.com/Prytoegrian/check-break#what-is-a-compatibility-break-)")
 	if !b.HasConfiguration() {
 		fmt.Println("No config file found, checking without one")
+	} else {
+		fmt.Println("Using a config file")
 	}
 	fmt.Println()
 }

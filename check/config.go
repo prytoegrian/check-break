@@ -8,7 +8,7 @@ import (
 
 type config struct {
 	Excluded struct {
-		Path string `json:"path"`
+		Path []string `json:"path"`
 	} `json:"excluded"`
 }
 
