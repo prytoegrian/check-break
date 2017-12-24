@@ -3,6 +3,7 @@ package check
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
 type config struct {
@@ -11,17 +12,20 @@ type config struct {
 	} `json:"excluded"`
 }
 
-func loadConfiguration(configPath string) (*config, error) {
+// loadConfiguration returns a config struct, loaded from parameters
+// It doesn't check workingPath validity, as it's already done higher.
+func loadConfiguration(workingPath string, configFilename string) *config {
 	var conf config
-	if configPath == "" {
-		return &conf, nil
+	if !strings.HasSuffix(workingPath, "/") {
+		workingPath = workingPath + "/"
 	}
-	configFile, err := os.Open(configPath)
+	configFilepath := workingPath + configFilename
+	configFile, err := os.Open(configFilepath)
 	defer configFile.Close()
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	jsonParser := json.NewDecoder(configFile)
 	jsonParser.Decode(&conf)
-	return &conf, nil
+	return &conf
 }

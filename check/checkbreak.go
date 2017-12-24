@@ -18,7 +18,7 @@ type Break struct {
 }
 
 // Init bootstraps Break structure
-func Init(workingPath string, startPoint string, endPoint string, configPath string) (*Break, error) {
+func Init(workingPath string, startPoint string, endPoint string, configFilename string) (*Break, error) {
 	if errPath := os.Chdir(workingPath); errPath != nil {
 		return nil, fmt.Errorf("Path %s doesn't exist", workingPath)
 	}
@@ -30,17 +30,18 @@ func Init(workingPath string, startPoint string, endPoint string, configPath str
 	if !refExists(endPoint) {
 		return nil, fmt.Errorf("The object %s doesn't exist", endPoint)
 	}
-	config, err := loadConfiguration(configPath)
-	if err != nil {
-		return nil, err
-	}
 
 	return &Break{
 		workingPath: workingPath,
 		startPoint:  startPoint,
 		endPoint:    endPoint,
-		config:      config,
+		config:      loadConfiguration(workingPath, configFilename),
 	}, nil
+}
+
+// HasConfiguration verifies that the config has been loaded
+func (b *Break) HasConfiguration() bool {
+	return b.config != nil
 }
 
 // filter drops a file if it satisfies exclusion criteria
@@ -66,7 +67,7 @@ func (b *Break) filter(files []file) []file {
 // exclusions is the exclusion list provided by config file
 func (b *Break) exclusions() []string {
 	excluded := make([]string, 0)
-	if b.config.Excluded.Path != "" {
+	if b.HasConfiguration() && b.config.Excluded.Path != "" {
 		excluded = append(excluded, b.config.Excluded.Path)
 	}
 

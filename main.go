@@ -14,7 +14,7 @@ func main() {
 	path := flag.String("p", "", "Path to analyse (optional)")
 	startingPoint := flag.String("s", "", "Git starting point")
 	endingPoint := flag.String("e", "", "Git ending point")
-	configPath := flag.String("c", "", "Config file path (optional)")
+	configFilename := flag.String("c", "cb-config.json", "Config filename, relative to analysed path (optional)")
 	flag.Parse()
 	if *startingPoint == "" {
 		log.Fatalln("Starting point is missing, use -h for details")
@@ -22,7 +22,7 @@ func main() {
 	if *endingPoint == "" {
 		log.Fatalln("Ending point is missing, use -h for details")
 	}
-	b, errInit := check.Init(workingPath(*path), *startingPoint, *endingPoint, *configPath)
+	b, errInit := check.Init(workingPath(*path), *startingPoint, *endingPoint, *configFilename)
 	if errInit != nil {
 		log.Fatal("Init failed : ", errInit)
 	}
@@ -50,6 +50,9 @@ func workingPath(userPath string) string {
 
 func displayTitle(b *check.Break) {
 	fmt.Println("(For details, please consult https://github.com/Prytoegrian/check-break#what-is-a-compatibility-break-)")
+	if !b.HasConfiguration() {
+		fmt.Println("No config file found, checking without one")
+	}
 	fmt.Println()
 }
 

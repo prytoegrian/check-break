@@ -7,7 +7,7 @@
 `check-break` itself follows `semver` and monitors its own changes. For now, it's under heavy development, use it at your own risks, compatibility breaks could happen at every moment.
 
 ## What is a compatibility break ?
-Basically, following the semver definition :  
+Basically, following the semver definition :
 > A change is incompatible if it removes a possibility for the consumer in the public API.
 
 All starts with a clear definition of **public API** in your context. Once done, a compatibility break occurs on all **public API** functions each time :
@@ -17,6 +17,7 @@ All starts with a clear definition of **public API** in your context. Once done,
 - a default argument is removed
 - a default value is changed
 - a return type is removed
+- a return type is added
 - type of any input / output / exception / assertion is changed and is incompatible with the former one (**1**)
 
 **1.** In other words, if you're comfortable with [Liskov principle](https://en.wikipedia.org/wiki/Liskov_substitution_principle), you might have heard :
