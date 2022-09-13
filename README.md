@@ -1,3 +1,5 @@
+⚠️ Code now lives in https://gitlab.com/prytoegrian/check-break
+
 # Check-break
 [![BCH compliance](https://bettercodehub.com/edge/badge/Prytoegrian/check-break?branch=master)](https://bettercodehub.com/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/6f9a3e0c93ce4fb28c778019ad083179)](https://www.codacy.com/app/prytoegrian/check-break?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Prytoegrian/check-break&amp;utm_campaign=Badge_Grade)
